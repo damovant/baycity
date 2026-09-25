@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bay City—District Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  #bcn-map-widget {
+    --bg-deep: #060c10;
+    --bg-panel: #0a1319;
+    --line: #2a7d78;
+    --line-dim: rgba(42,125,120,0.32);
+    --accent: #3fd9c7;
+    --text: #e8e4d9;
+    --text-dim: #8296a0;
+    --tag: #c98a3b;
+    --radius: 2px;
+
+    box-sizing: border-box;
+    background: var(--bg-deep);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    max-width: 1100px;
+    margin: 0 auto;
+    border: 1px solid var(--line-dim);
+    display: flex;
+    flex-direction: column;
+  }
+  #bcn-map-widget *, #bcn-map-widget *::before, #bcn-map-widget *::after {
+    box-sizing: border-box;
+  }
+
+  .bcn-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--line-dim);
+  }
+  .bcn-header-title {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 500;
+    font-size: 15px;
+    letter-spacing: 0.04em;
+    color: var(--text);
+    transition: color 0.15s ease;
+  }
+  .bcn-header-title:hover,
+  .bcn-header-title:focus-visible {
+    color: var(--accent);
+  }
+  .bcn-header span {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+
+  .bcn-body {
+    display: flex;
+    flex-direction: row;
+  }
+  @media (max-width: 860px) {
+    .bcn-body { flex-direction: column; }
+  }
+
+  .bcn-map-wrap {
+    position: relative;
+    align-self: flex-start;
+    flex: 1 1 62%;
+    background: #050a0d;
+    overflow: hidden;
+    line-height: 0;
+  }
+  .bcn-map-wrap img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .bcn-hotspot {
+    -webkit-appearance: none;
+    appearance: none;
+    position: absolute;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .bcn-hotspot:hover,
+  .bcn-hotspot:focus-visible {
+    border-color: var(--accent);
+    background: rgba(63,217,199,0.10);
+  }
+  .bcn-hotspot:focus-visible {
+    outline: none;
+  }
+  .bcn-hotspot.active {
+    border-color: var(--accent);
+    background: rgba(63,217,199,0.16);
+  }
+
+  .bcn-sidebar {
+    flex: 1 1 38%;
+    min-width: 0;
+    background: var(--bg-panel);
+    border-left: 1px solid var(--line-dim);
+    padding: 24px 24px 26px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  @media (max-width: 860px) {
+    .bcn-sidebar { border-left: none; border-top: 1px solid var(--line-dim); }
+  }
+
+  .bcn-eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+  }
+  .bcn-name {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 600;
+    font-size: 24px;
+    line-height: 1.15;
+    margin: 0;
+    color: var(--text);
+  }
+  .bcn-tag {
+    display: none;
+    align-self: flex-start;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.02em;
+    color: var(--tag);
+    border: 1px solid rgba(201,138,59,0.4);
+    padding: 3px 8px;
+    border-radius: var(--radius);
+  }
+  .bcn-tag.show { display: inline-block; }
+
+  .bcn-stats {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    row-gap: 6px;
+    column-gap: 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    border-top: 1px solid var(--line-dim);
+    border-bottom: 1px solid var(--line-dim);
+    padding: 12px 0;
+  }
+  .bcn-stats dt { color: var(--text-dim); }
+  .bcn-stats dd { margin: 0; color: var(--text); text-align: right; }
+
+  .bcn-desc {
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--text);
+    max-width: 46ch;
+  }
+  .bcn-desc p {
+    margin: 0 0 12px 0;
+  }
+  .bcn-desc p:last-child {
+    margin-bottom: 0;
+  }
+  .bcn-desc h4 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--accent);
+    margin: 20px 0 8px 0;
+  }
+  .bcn-desc h4:first-child {
+    margin-top: 0;
+  }
+
+  .bcn-footer {
+    padding: 12px 22px;
+    border-top: 1px solid var(--line-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    color: var(--text-dim);
+    letter-spacing: 0.03em;
+  }
+</style>
+</head>
+<body>
+
+<div id="bcn-map-widget">
+  <div class="bcn-header">
+    <button class="bcn-header-title" id="bcn-reset" type="button">Bay City Area Map</button>
+    <span>Bay City Noise</span>
+  </div>
+
+  <div class="bcn-body">
+    <div class="bcn-map-wrap">
+      <img src="https://i.imgur.com/UXjs9sH.jpeg" alt="Map of Bay City's districts" draggable="false">
+      <div id="bcn-hotspots"></div>
+    </div>
+
+    <div class="bcn-sidebar">
+      <div class="bcn-panel show" id="bcn-panel">
+        <div>
+          <div class="bcn-eyebrow" id="bcn-eyebrow">district file</div>
+          <h3 class="bcn-name" id="bcn-name"></h3>
+        </div>
+        <span class="bcn-tag" id="bcn-tag"></span>
+        <dl class="bcn-stats" id="bcn-stats"></dl>
+        <div class="bcn-desc" id="bcn-desc"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bcn-footer">Click a name on the map to open its file. Click "Bay City Area Map" above to return to the overview.</div>
+</div>
+
+<script>
+(function() {
+  var DISTRICTS = [{"id": "athena", "name": "Athena Port", "x": 17, "y": 17, "w": 6, "h": 5, "tag": "City dock", "stats": [["area", "174 sq mi (450 km\u00b2)"], ["population", "7,500,000"], ["share of bay city", "25%"], ["density", "43,200 / sq mi (16,700 / km\u00b2)"]], "desc": ["The northernmost district of Bay City, and the only one of the nine urban districts that is a peninsula, making it the sole district directly connected to the mainland. It is the most populous district, reaching 7.5 million inhabitants, most of them packed into the Housing Megabuildings that tower over the city. As its name suggests, the district is home to the city's vast commercial port, which occupies the entire north-western area, alongside a number of industrial facilities. It is also the poorest district in the city, inhabited chiefly by laborers and dockworkers. Among other things, the district houses the large skytrain depot serving the Coastview and Seaview lines, the only inter-district lines. Beyond the port, it is known for the Tarpoon area in the north, site of Bay City's northern customs entry and one of the crossings that give access to Old Tampa."]}, {"id": "oldtampa", "name": "Old Tampa", "x": 31, "y": 19, "w": 9, "h": 6, "tag": "Walled ruins", "stats": [["area", "427 sq mi (1,106 km\u00b2)"], ["population", "Uncounted"], ["share of bay city", "\u2014"], ["density", "\u2014"]], "desc": ["The first attempt to save the Tampa Bay metropolitan area\u2014and a miserable failure. When Talbot-Yanada was brought in to save the area as it slowly sank, President Osamu Yanada made it unmistakably clear that he would never take over a project someone else had already started. So, once the island-districts were complete, a dividing wall was built around Old Tampa, cutting the area off from the city. The non-district still sat within BC's climate bubble, though, so unfinished towers, flooded buildings, and half-built structures quickly became a refuge for anyone turned away at Bay City's gates. To this day, no one knows exactly how many people live in Old Tampa, but it's an open secret that Talbot-Yanada has an arrangement with organized crime, letting it run the area in exchange for keeping its residents out of Bay City."]}, {"id": "bok", "name": "Bok", "x": 17, "y": 32, "w": 5, "h": 4, "tag": "Logistics district", "stats": [["area", "218 sq mi (566 km\u00b2)"], ["population", "6,900,000"], ["share of bay city", "23%"], ["density", "31,600 / sq mi (12,200 / km\u00b2)"]], "desc": ["The largest district of Bay City, roughly the size of Chicago but with well over twice its population. Despite its size, much of the district is taken up by the enormous industrial and logistics facilities it is famous for. Nearly 7 million inhabitants are packed into its Housing Megabuildings, making it the second most populous district: almost all of them factory hands and workers on the industrial and logistics lines. For all its considerable size, Bok is the only district controlled entirely by a single criminal organization: the New Chinese Triad, affiliated with the major logistics companies, such as the fellow Chinese-owned Dalian Logistics."]}, {"id": "largo", "name": "Largo", "x": 28, "y": 37, "w": 6, "h": 5, "tag": "Lowest white-collar area", "stats": [["area", "85 sq mi (221 km\u00b2)"], ["population", "3,500,000"], ["share of bay city", "11.7%"], ["density", "41,000 / sq mi (15,800 / km\u00b2)"]], "desc": ["The second most densely populated district, split between Housing Megabuildings and lower-density residential areas inhabited mostly by the city's lowest-ranking clerical workers. Similar in nature to Mayo, Largo represents a small step up from its twin district, if only for the presence of the residential zone reserved for the police's non-commissioned officers (that is, up to sergeant rank). Control of the district is contested among several groups\u2014among them the heavily armed Schod\u00f3w\u2014and the police themselves, who use their criminal contacts to run their operations in Baymont."]}, {"id": "mayo", "name": "Mayo", "x": 20, "y": 42, "w": 9, "h": 5, "tag": "Blue-collar district", "stats": [["area", "117 sq mi (303 km\u00b2)"], ["population", "4,600,000"], ["share of bay city", "15.3%"], ["density", "39,300 / sq mi (15,200 / km\u00b2)"]], "desc": ["The blue-collar residential district par excellence, a dense expanse of Housing Megabuildings that house much of the city's working class. Yet unlike the districts to its north, Mayo is not given over to port and industry: alongside the residential towers it holds a growing layer of commercial and service businesses, and the first proper retail and commercial zones one finds moving in from Athena Port and Bok. Shops, markets, workshops, and service outfits fill the ground levels and the spaces between the megabuildings, giving the district a busier street life than the purely industrial north. Mayo is contested between two criminal organizations: the Goblins, a kind of militarized gang of nerds, and Barrio III, a South American criminal outfit transplanted directly into Bay City."]}, {"id": "baymont", "name": "Baymont", "x": 28, "y": 51, "w": 9, "h": 6, "tag": "Middle-class and BCPD", "stats": [["area", "208 sq mi (538 km\u00b2)"], ["population", "2,900,000"], ["share of bay city", "9.7%"], ["density", "14,000 / sq mi (5,400 / km\u00b2)"]], "desc": ["The first district of what might be called Bay City's middle class and white-collar workers. Besides being home to the police's central precinct in Police Plaza, it is also the first district where the BCPD actually does its job, actively enforcing security and control over both licit and illicit activity. In fact, the BCPD directly manages all those criminal enterprises that remain indispensable, from the black market to the drug trade, ensuring that no criminal organization ever takes control of Baymont. It is the second largest district in the city, yet it hosts no Housing Megabuildings\u2014an honor reserved for the poorer areas farther north\u2014so its population density drops dramatically. It is also home to practically all of the city's administrative buildings.", "Baymont is likewise the first district where the street level is entirely underground, buried in a dense network of roads that connect directly to the buildings' underground garages, leaving the ground floor to pedestrians. There are a few parks, but little greenery: the main gardens, such as the one at Police Plaza, are gardens of gravel and sparse trees."]}, {"id": "arlington", "name": "Arlington", "x": 38, "y": 56, "w": 10, "h": 5, "tag": "House of the mid-tier corps", "stats": [["area", "127 sq mi (330 km\u00b2)"], ["population", "2,200,000"], ["share of bay city", "7.3%"], ["density", "17,300 / sq mi (6,700 / km\u00b2)"]], "desc": ["Arlington is primarily the district of middle management, both institutional and corporate. Coming down from the north, it is the first district where a stroll might actually be pleasant: as in Baymont, the street level is entirely underground, leaving broad pedestrian spaces dotted here and there with urban parks, with canal-side promenades ringing the district. A dense network of elevated pedestrian skyways and skytrain lines links the towers and skyscrapers directly, at varying heights. It is also home to the Florida Broadcasting Network, as well as the first mid-tier national and multinational corporations."]}, {"id": "rialto", "name": "Rialto", "x": 34, "y": 68, "w": 7, "h": 5, "tag": "Tourism and religions", "stats": [["area", "85 sq mi (221 km\u00b2)"], ["population", "1,050,000"], ["share of bay city", "3.5%"], ["density", "12,300 / sq mi (4,800 / km\u00b2)"]], "desc": ["The city's tourist district: a mix of Las Vegas, Dubai, and Venice, from which it takes both its name and the dozens of canals that run through it. Equipped with a marina, Rialto is the district of casinos, hotels, fashionable shopping streets, amusement parks, and climate-controlled venues where one can even ski indoors, and so on. It has one of the lowest resident densities in the city, since most of the workers staffing its thousand attractions commute in every day, unable to afford the rooms and apartments reserved for tourists. As in the other southern districts, the street level is buried underground, but the skytrain and pedestrian skyways are sparser, given the great heterogeneity of its buildings.", "Rialto is also home to Our Lady of La Leche, simply called La Leche by BC citizens: born as the heart of the Catholic community, over time it transformed into a gathering point for every religion, old and new\u2014a zone that now holds the houses of worship of Bay City's main faiths, and of whichever ones happen to be in fashion at the moment."]}, {"id": "cedar", "name": "Cedar", "x": 43, "y": 70, "w": 10, "h": 5, "tag": "Full corporate district", "stats": [["area", "93 sq mi (240 km\u00b2)"], ["population", "1,200,000"], ["share of bay city", "4%"], ["density", "12,900 / sq mi (5,000 / km\u00b2)"]], "desc": ["The heart of the city's corporate and political power, and more besides. It is the district of high-level executives, the last rung of the social ladder unless one happens to be the child of a billionaire, a CEO, or the owner of a multinational. Its urban design was drawn by Osamu Yanada, president of Talbot-Yanada corporation, who chose to shape Cedar's cityscape in person, creating a small, hyper-modern Kyoto. At its center, ringed by a canal, lies the perfectly square island of Sugi: a beautiful Japanese garden from whose heart rises the Yanada Tower, access to which is granted to very few. In Cedar, too, the street level is entirely underground, giving way to a handsome alternation of skyscrapers and Japanese gardens. Although the police patrol the district, its security is guaranteed by the City Council Marshals, the corporations' immensely powerful private police force, run directly by the private half of the city council. Cedar hosts private corporations' ports."]}, {"id": "neptune", "name": "Neptune Beach", "x": 41, "y": 79, "w": 10, "h": 7, "tag": "Ultra-wealthy paradise", "stats": [["area", "108 sq mi (278 km\u00b2)"], ["population", "150,000"], ["share of bay city", "0.5%"], ["density", "1,400 / sq mi (540 / km\u00b2)"]], "desc": ["A small, private district occupied exclusively by the villas of BC's ultra-rich, home to millionaires, CEOs, top-tier VIPs, and the like. Its entrance, watched over by the City Council Marshals, is off-limits to anyone who is neither a resident nor the holder of an invitation. Besides a private marina reserved for the yachts of the ultra-wealthy, Neptune Beach boasts genuine beaches with swimmable waters, unlike the rest of the city, which is ringed by the toxic, oily waters of the Gulf of Mexico."]}, {"id": "lakeland", "name": "Lakeland Farm District", "x": 46, "y": 31, "w": 15, "h": 7, "tag": "Farm and energy production", "stats": [["area", "480 sq mi (1,244 km\u00b2)"], ["population", "\u2014"], ["share of bay city", "\u2014"], ["density", "\u2014"]], "desc": ["Bay City's agricultural district, built on the former Lakeland area, which was razed completely to the ground to exploit its precious water basins before the desert could swallow them. Beyond the ultra-wealthy corporations, Lakeland is one of the reasons Bay City holds so much power in the United States\u2014not only the only city fully self-sufficient in both energy and food, but productive enough to be one of the state's main suppliers. Lakeland is Talbot-Yanada's red button: press it, and they could plunge more than 50 million people across Florida and part of Georgia into darkness.", "The district is under tight lockdown, patrolled around the clock by the Lakeland Patrol\u2014a force that doesn't bother asking questions before dealing with intruders, and isn't shy about using force."]}, {"id": "sandlake", "name": "Sand Lake", "x": 90, "y": 62, "w": 7, "h": 7, "eyebrow": "location file", "tag": "The komoru shelters", "stats": [["area", "\u2014"], ["population", "\u2014"], ["share of bay city", "\u2014"], ["density", "\u2014"]], "desc": ["A sandy dirt road climbs off State Road 72 toward what's left of Florida's most famous theme park; about halfway up sits what used to be Lake Arbuckle. Long since evaporated, a small community called Sand Lake has grown up inside its dried basin. Built from underground structures\u2014there's no real climate bubble out here\u2014Sand Lake is home to the so-called komoru: people who chose to cut themselves off from an oppressive society and build a life of their own. At first glance, Sand Lake looks like nothing more than a stretch of powerful antennas and hatches leading underground, but contrary to what most people assume, it's not just survivalists and loners living down there\u2014dozens of former executives, corporate types, and people from every walk of life have taken refuge far from the megalopolis, building a small, self-sufficient oasis."]}, {"id": "raysmotel", "name": "Ray's Motel", "x": 66, "y": 81, "w": 10, "h": 5, "eyebrow": "location file", "tag": "Waypoint on State Road 72", "stats": [["area", "\u2014"], ["population", "\u2014"], ["share of bay city", "\u2014"], ["density", "\u2014"]], "desc": ["On the edge of Bay City's climate bubble, this motel is one of the few waypoints for travelers crossing the roads of the American Outback who don't want\u2014or in many cases can't afford\u2014to stop in Bay City itself (the BCPD isn't exactly fond of people who were already turned away at the gates and come back for another try). A classic automated motel, the last stop before the long stretch out toward Arcadia."]}, {"id": "bayou", "name": "The Bayou", "x": 58, "y": 89, "w": 8, "h": 6, "eyebrow": "location file", "tag": "Flooded coast", "stats": [["area", "\u2014"], ["population", "\u2014"], ["share of bay city", "\u2014"], ["density", "\u2014"]], "desc": ["Rising seas have turned Florida's west coast into a low, swampy expanse, closely resembling\u2014and named after\u2014the classic Louisiana bayou. Stretching from Bay City all the way down to the Everglades, this drowned coastal corridor runs alongside Interstate 75, home to the bayou's typical wildlife, which has adapted with ease to surviving among the drowned cities now overtaken by sea and swamp."]}, {"id": "outback", "name": "American Outback", "x": 66, "y": 54, "w": 15, "h": 5, "eyebrow": "location file", "tag": "Dead land", "stats": [["area", "\u2014"], ["population", "\u2014"], ["share of bay city", "\u2014"], ["density", "\u2014"]], "desc": ["The name comes mainly from its resemblance to the famous Australian desert: an arid expanse of sand and soil in a reddish beige, impossible to farm. The American Outback has by now swallowed up nearly every state from California to Florida, from Texas to Nebraska."]}];
+  var CITY_OVERVIEW = {"id": "bay-city-overview", "name": "Bay City", "eyebrow": "city file", "tag": "", "stats": [["urban area", "1,215 sq mi (3,147 km\u00b2)"], ["total area", "2,122 sq mi (5,497 km\u00b2)"], ["population", "30,000,000 registered residents"], ["density", "24,700 / sq mi (9,500 / km\u00b2)"], ["districts", "9 urban + Lakeland Farm District + Old Tampa"]], "desc": ["Bay City is a private megalopolis of some thirty million registered residents\u2014and countless undocumented others\u2014built along the oily expanse of the old Tampa Bay, ironically renamed Clearwater Bay. It is one of the last cities of a drowning world: as the seas rose and the deserts spread, coastlines were redrawn, nations and borders unmade, and the survivors were driven to crowd into the few urban centers still fit for human life.", "## A drowning state", "When Florida began to sink, the Alvarado administration answered with half-measures ignoring a scientific community that warned no temporary fix could hold. As the ocean swallowed the first neighborhoods, the government managed little more than a mass evacuation to neighboring states, and Alvarado fell after a single term.", "Her successor, the young hardliner Christian J. Kessler\u2014a favorite of the construction lobby and the Defense Department\u2014staked his presidency on rebuilding the drowned areas of Tampa. It was a catastrophe: costs ballooned into the hundreds of billions, contractors went bankrupt mid-project, and the reconstruction was never finished. Yet by then homes and offices had already been sold, businesses and families had moved into the half-built city, and when the corporations pulled out, entire abandoned districts filled with the hundreds of thousands of refugees fleeing sinking and desertifying lands. The scandal that followed exposed corruption on a national scale and put nearly the entire administration in handcuffs. Kessler included.", "## The birth of a new city", "With the government gutted, Vice-President George Bello took the reins, abandoned the ruined reconstruction entirely, and handed the whole project to Talbot-Yanada, the corporation already famous for salvaging other imperiled cities and for the recent rebuild of Neo-Nagasaki. Their task: to raze what remained and raise a modern metropolis in its place.", "The result was Bay City. Where the old rescue had failed, the corporate city thrived, giving a home to over twenty million Americans of the nearly hundred million whose homes had been lost to the oceans or eaten by the desert. Plus all those who could emigrate there legally from thousands of other devastated regions, drawn to one of the few cities still growing. It was, in its way, a new world: a private megalopolis built to be fed to the corporations, yet one where anyone could vanish completely, or claw their way up until they touched the sky. Or so its proud, hard-working new settlers told themselves.", "## How the city survives", "Bay City survives inside an artificial microclimate. Enormous marine towers off its coast, called chimneys, generate a climate bubble over the city, holding back the killing heat of the world outside. The system was never meant for Earth at all: it was designed to terraform exoplanets, and was hastily repurposed when climate collapse became a global emergency. Beyond the bubble, the desert reigns.", "The chimneys are the city's lungs, and its most vulnerable point. After the eco-terrorist attack of March 15, when a strike on the offshore chimneys was narrowly thwarted by joint U.S. and Talbot-Yanada forces, the U.S.S. Kennedy was stationed to patrol them, and has kept constant watch over them ever since.", "## A city built as a ladder", "Talbot-Yanada laid the city out with cold precision: nine island-districts, each a rung on the social ladder, climbing from north to south: from the working class at the docks of Athena, up through the skilled labor, technicians, and white-collar tiers, to the corporate elite of Cedar and, at the very top, Neptune Beach, the gated paradise of millionaires that no one may enter without a permit or an invitation. To these are added Lakeland, the agricultural district that feeds and waters the metropolis and part of the state beyond, and Old Tampa, that first, failed attempt to rebuild the old city, now sealed behind a wall and abandoned to itself and to those who took refuge in its ruins.", "## Who rules the city", "Because Bay City is a mostly private city, its City Council is split exactly in half: one part elected by the citizens, the other made up of representatives of the major corporations, first among them Talbot-Yanada. On paper, public and private power sit as equals. In practice, everyone knows where the weight lies.", "The Council commands the City Council Marshals (CCM), a private police force better armed, better trained, and effectively superior in the chain of command to the public BCPD. Officially the Marshals answer to the Council as a whole; in reality they serve only its private half\u2014and this is an open secret the whole city lives with. The elected officials write the laws; the corporations hold the guns.", "Bay City is, in the end, exactly what it was built to be: a place where thirty million lives are just another asset on the ledger. And where, all the same, people keep climbing."]};
+  var hotspotContainer = document.getElementById('bcn-hotspots');
+  var sidebar = document.querySelector('.bcn-sidebar');
+  var resetBtn = document.getElementById('bcn-reset');
+
+  DISTRICTS.forEach(function(d) {
+    var btn = document.createElement('button');
+    btn.className = 'bcn-hotspot';
+    btn.style.left = d.x + '%';
+    btn.style.top = d.y + '%';
+    btn.style.width = d.w + '%';
+    btn.style.height = d.h + '%';
+    btn.setAttribute('aria-label', d.name);
+    btn.dataset.id = d.id;
+    btn.addEventListener('click', function() { selectEntry(d, btn); });
+    hotspotContainer.appendChild(btn);
+  });
+
+  resetBtn.addEventListener('click', function() { selectEntry(CITY_OVERVIEW, null); });
+
+  function selectEntry(d, btn) {
+    document.querySelectorAll('.bcn-hotspot').forEach(function(el) {
+      el.classList.remove('active');
+    });
+    if (btn) btn.classList.add('active');
+
+    document.getElementById('bcn-eyebrow').textContent = d.eyebrow || 'district file';
+    document.getElementById('bcn-name').textContent = d.name;
+
+    var tagEl = document.getElementById('bcn-tag');
+    if (d.tag) {
+      tagEl.textContent = d.tag;
+      tagEl.classList.add('show');
+    } else {
+      tagEl.textContent = '';
+      tagEl.classList.remove('show');
+    }
+
+    var statsEl = document.getElementById('bcn-stats');
+    statsEl.innerHTML = '';
+    d.stats.forEach(function(pair) {
+      var dt = document.createElement('dt');
+      dt.textContent = pair[0];
+      var dd = document.createElement('dd');
+      dd.textContent = pair[1];
+      statsEl.appendChild(dt);
+      statsEl.appendChild(dd);
+    });
+
+    document.getElementById('bcn-desc').innerHTML = '';
+    d.desc.forEach(function(paragraph) {
+      var isHeading = paragraph.indexOf('## ') === 0;
+      var el = document.createElement(isHeading ? 'h4' : 'p');
+      el.textContent = isHeading ? paragraph.slice(3) : paragraph;
+      document.getElementById('bcn-desc').appendChild(el);
+    });
+
+    if (btn && window.innerWidth <= 860) {
+      sidebar.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  // default state: Bay City overview
+  selectEntry(CITY_OVERVIEW, null);
+})();
+</script>
+
+</body>
+</html>
